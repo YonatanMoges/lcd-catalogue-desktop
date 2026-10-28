@@ -1,0 +1,22 @@
+# Private business catalogue
+data/
+*.xlsx
+*.xls
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Packaging output
+build/
+dist/
+*.spec
+
+# macOS files
+.DS_Store
+
+# Local configuration
+.env
+.env.*
