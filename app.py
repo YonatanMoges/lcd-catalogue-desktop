@@ -86,7 +86,7 @@ class LCDApp(QMainWindow):
         self.review.setMaximumHeight(125)
         layout.addWidget(self.review)
         self.note = QLabel('Selling prices and stock are from the loaded local catalogue. '
-                           'Warehouse availability is not confirmed by the price list.')
+                           'Products listed in the price catalogue can be ordered from the big warehouse.')
         self.note.setWordWrap(True)
         layout.addWidget(self.note)
         self.setStyleSheet('''
@@ -154,7 +154,7 @@ class LCDApp(QMainWindow):
             reasons = item['review_reasons']
             price_text = 'Confirm price' if price is None else f'{price:.2f}'
             stock_text = str(int(qty)) if float(qty).is_integer() else str(qty)
-            availability = 'In store' if qty > 0 else 'Warehouse: unconfirmed'
+            availability = 'In store' if qty > 0 else 'Big warehouse - available to order'
             if len(products) > 1:
                 review = 'Confirm correct LCD variant'
             elif reasons:
@@ -180,7 +180,7 @@ class LCDApp(QMainWindow):
         if any(not p['price_confirmed'] for p in products):
             notes.append('One or more products have no confirmed selling price. Do not use purchase price.')
         if any(p['warehouse_confirmation_required'] for p in products):
-            notes.append('Availability or requested quantity requires confirmation.')
+            notes.append('Big warehouse order or local stock shortage requires action.')
         if result['automatic_quote_allowed']:
             notes.append('One matched product; catalogue price and local quantity are sufficient.')
         if products and not result['automatic_quote_allowed']:
