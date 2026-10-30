@@ -1,13 +1,14 @@
 """LCD Catalogue Desktop — offline Windows/macOS search interface."""
 import json
 import sys
+from decimal import Decimal
 from pathlib import Path
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QSpinBox, QTableWidget,
     QTableWidgetItem, QFileDialog, QMessageBox, QHeaderView,
-    QPlainTextEdit,
+    QPlainTextEdit, QSplitter, QScrollArea,
 )
 from lookup_engine import lookup
 from excel_sync import build_catalogue, save_catalogue_atomic
@@ -24,14 +25,21 @@ class LCDApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.catalogue = None
+        self.quote_items = []
         self.catalogue_path = None
         self.excel_dir = EXCEL_DIR
         self.excel_signature = None
         self.pending_signature = None
         self.setWindowTitle('LCD Catalogue Desktop')
-        self.resize(1150, 760)
+        self.resize(1300, 900)
+        self.page_scroll = QScrollArea()
+        self.page_scroll.setWidgetResizable(True)
+        self.page_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setCentralWidget(self.page_scroll)
+
         root = QWidget()
-        self.setCentralWidget(root)
+        root.setMinimumWidth(900)
+        self.page_scroll.setWidget(root)
         layout = QVBoxLayout(root)
         layout.setContentsMargins(24, 22, 24, 20)
         layout.setSpacing(12)
@@ -85,17 +93,91 @@ class LCDApp(QMainWindow):
         header.setSectionResizeMode(6, QHeaderView.ResizeMode.Stretch)
         for col in (1, 2, 3, 4):
             header.setSectionResizeMode(col, QHeaderView.ResizeMode.ResizeToContents)
-        layout.addWidget(self.table, 1)
+        # Search results are placed into a resizable splitter below.
 
-        layout.addWidget(QLabel('Order review'))
+        quote_panel = QWidget()
+        quote_layout = QVBoxLayout(quote_panel)
+        quote_layout.setContentsMargins(0, 4, 0, 0)
+        quote_layout.setSpacing(8)
+
+        add_button = QPushButton('Add to Quotation')
+        add_button.clicked.connect(self.add_to_quotation)
+        add_button.setMaximumWidth(190)
+        quote_layout.addWidget(
+            add_button, 0, Qt.AlignmentFlag.AlignRight)
+
+        quote_layout.addWidget(QLabel('Current Quotation'))
+
+        self.quote_table = QTableWidget(0, 5)
+        self.quote_table.setHorizontalHeaderLabels([
+            'LCD Product', 'Quantity', 'Unit Price',
+            'Subtotal', 'Availability / Note'
+        ])
+        self.quote_table.setEditTriggers(
+            QTableWidget.EditTrigger.NoEditTriggers)
+        self.quote_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows)
+        self.quote_table.setAlternatingRowColors(True)
+        self.quote_table.verticalHeader().setVisible(False)
+        qh = self.quote_table.horizontalHeader()
+        qh.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        qh.setSectionResizeMode(4, QHeaderView.ResizeMode.Stretch)
+        for c in (1, 2, 3):
+            qh.setSectionResizeMode(
+                c, QHeaderView.ResizeMode.ResizeToContents)
+        quote_layout.addWidget(self.quote_table, 1)
+
+        quote_actions = QHBoxLayout()
+        self.total_label = QLabel('Total: 0.00')
+        quote_layout.addWidget(self.total_label)
+        self.total_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight)
+        self.total_label.setStyleSheet(
+            'font-size: 18px; font-weight: bold; padding: 8px;'
+        )
+
+
+        remove_button = QPushButton('Remove Selected')
+        remove_button.clicked.connect(self.remove_quote_item)
+        quote_actions.addWidget(remove_button)
+
+        copy_button = QPushButton('Copy Quotation')
+        copy_button.clicked.connect(self.copy_quotation)
+        quote_actions.addWidget(copy_button)
+
+        clear_button = QPushButton('Clear Quotation')
+        clear_button.clicked.connect(self.clear_quotation)
+        quote_actions.addWidget(clear_button)
+
+        quote_actions.insertStretch(0)
+        quote_layout.addLayout(quote_actions)
+
+        self.results_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.results_splitter.addWidget(self.table)
+        self.results_splitter.addWidget(quote_panel)
+        self.results_splitter.setChildrenCollapsible(False)
+        self.table.setMinimumHeight(270)
+        self.quote_table.setMinimumHeight(290)
+        self.results_splitter.setMinimumHeight(650)
+        self.results_splitter.setSizes([300, 350])
+        layout.addWidget(self.results_splitter, 1)
+
+        self.review_heading = QLabel('Order Review')
+        layout.addWidget(self.review_heading)
         self.review = QPlainTextEdit()
         self.review.setReadOnly(True)
-        self.review.setMaximumHeight(125)
+        self.review.setFixedHeight(75)
         layout.addWidget(self.review)
-        self.note = QLabel('Selling prices and stock are from the loaded local catalogue. '
-                           'Products listed in the price catalogue can be ordered from the big warehouse.')
-        self.note.setWordWrap(True)
-        layout.addWidget(self.note)
+        # Position Order Review between search and quotation.
+        layout.removeWidget(self.review_heading)
+        layout.removeWidget(self.review)
+        quote_layout.insertWidget(0, self.review_heading)
+        quote_layout.insertWidget(1, self.review)
+        quote_layout.removeWidget(add_button)
+        quote_layout.insertWidget(
+            0, add_button, 0, Qt.AlignmentFlag.AlignRight)
+
+
         self.setStyleSheet('''
           QWidget { background:#f8fafc; color:#172033; font-size:13px; }
           QLabel#heading { font-size:26px; font-weight:bold; }
@@ -242,6 +324,17 @@ class LCDApp(QMainWindow):
                 cell.setTextAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
                 self.table.setItem(r, c, cell)
 
+            self.table.item(r, 0).setData(
+                Qt.ItemDataRole.UserRole,
+                {
+                    'product': item,
+                    'requested_model': result['requested_model'],
+                    'quantity': self.qty_input.value(),
+                    'ambiguous': len(products) > 1,
+                    'partial': result.get('partial_search', False),
+                }
+            )
+
         label = result['status'].replace('_', ' ')
         self.status_label.setText(
             f'{label}  |  {len(products)} product(s)  |  '
@@ -262,6 +355,178 @@ class LCDApp(QMainWindow):
         if products and not result['automatic_quote_allowed']:
             notes.append('Manual review required before confirming the order.')
         self.review.setPlainText('\n'.join(notes))
+
+
+    def add_to_quotation(self):
+        row = self.table.currentRow()
+        if row < 0:
+            QMessageBox.information(
+                self, 'Select a product',
+                'Click the correct LCD in the search results first.')
+            return
+
+        cell = self.table.item(row, 0)
+        data = cell.data(Qt.ItemDataRole.UserRole) if cell else None
+
+        if not data:
+            QMessageBox.information(
+                self, 'Select a product',
+                'Please select a valid LCD product row.')
+            return
+
+        item = data['product']
+        price = item.get('main_selling_price')
+
+        if price is None or float(price) <= 0:
+            QMessageBox.warning(
+                self, 'Missing selling price',
+                'This LCD has no confirmed selling price. '
+                'It cannot be added to the quotation.')
+            return
+
+        if data['ambiguous'] or data['partial']:
+            answer = QMessageBox.question(
+                self, 'Verify LCD variant',
+                'This search has multiple or partial matches.\n\n'
+                f'Selected LCD: {item["product"]}\n\n'
+                'Have you verified that this is the correct '
+                'LCD for the customer?',
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+
+        quantity = data['quantity']
+        stock = item['store_quantity']
+
+        if stock <= 0:
+            note = 'Big warehouse - order required'
+        elif stock < quantity:
+            note = 'Local stock insufficient - review'
+        else:
+            note = 'In store'
+
+        if data['partial']:
+            note += '; partial search - verify model'
+
+        self.quote_items.append({
+            'product': item['product'],
+            'requested': data['requested_model'],
+            'quantity': quantity,
+            'price': Decimal(str(price)),
+            'stock': stock,
+            'partial': data['partial'],
+            'note': note,
+        })
+
+        self.update_quotation()
+        self.search_input.clear()
+        self.search_input.setFocus()
+
+    def update_quote_quantity(self, row, quantity):
+        if not (0 <= row < len(self.quote_items)):
+            return
+
+        item = self.quote_items[row]
+        item['quantity'] = quantity
+        stock = item.get('stock', 0)
+
+        if stock <= 0:
+            note = 'Big warehouse - order required'
+        elif stock < quantity:
+            note = 'Local stock insufficient - review'
+        else:
+            note = 'In store'
+
+        if item.get('partial'):
+            note += '; partial search - verify model'
+
+        item['note'] = note
+        self.update_quotation()
+
+    def update_quotation(self):
+        self.quote_table.setRowCount(len(self.quote_items))
+        total = Decimal('0')
+
+        for r, item in enumerate(self.quote_items):
+            subtotal = item['price'] * item['quantity']
+            total += subtotal
+
+            self.quote_table.setItem(
+                r, 0, QTableWidgetItem(item['product']))
+
+            qty_box = QSpinBox()
+            qty_box.setRange(1, 100000)
+            qty_box.setValue(item['quantity'])
+            qty_box.valueChanged.connect(
+                lambda value, row=r:
+                    self.update_quote_quantity(row, value))
+            self.quote_table.setCellWidget(r, 1, qty_box)
+
+            values = [
+                f"{item['price']:.2f}",
+                f"{subtotal:.2f}",
+                item['note']
+            ]
+            for c, value in enumerate(values, start=2):
+                self.quote_table.setItem(
+                    r, c, QTableWidgetItem(value))
+
+        self.total_label.setText(
+            f'Total: {total:.2f}  |  '
+            f'{len(self.quote_items)} line item(s)')
+
+    def remove_quote_item(self):
+        row = self.quote_table.currentRow()
+        if 0 <= row < len(self.quote_items):
+            self.quote_items.pop(row)
+            self.update_quotation()
+
+    def clear_quotation(self):
+        if self.quote_items:
+            answer = QMessageBox.question(
+                self, 'Clear quotation',
+                'Remove all items from this quotation?',
+                QMessageBox.StandardButton.Yes |
+                QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+
+        self.quote_items.clear()
+        self.update_quotation()
+        self.search_input.setFocus()
+
+    def copy_quotation(self):
+        if not self.quote_items:
+            QMessageBox.information(
+                self, 'Empty quotation',
+                'Add at least one LCD first.')
+            return
+
+        lines = ['LCD QUOTATION', '']
+        total = Decimal('0')
+
+        for n, item in enumerate(self.quote_items, 1):
+            subtotal = item['price'] * item['quantity']
+            total += subtotal
+
+            lines.append(f"{n}. {item['product']}")
+            lines.append(
+                f"   {item['quantity']} units x "
+                f"{item['price']:.2f} = {subtotal:.2f}"
+            )
+
+        lines.append(f"TOTAL: {total:.2f}")
+
+        QApplication.clipboard().setText(chr(10).join(lines))
+
+        QMessageBox.information(
+            self, 'Quotation copied',
+            'Quotation copied to clipboard.')
 
 
 if __name__ == '__main__':
