@@ -66,6 +66,27 @@ Excel inputs remain the source of truth; the generated JSON is a local read-opti
 - `build_windows.bat` — Windows build script.
 - [`USER_GUIDE.md`](USER_GUIDE.md) — instructions written for business employees.
 
+## Try the demonstration
+
+A small, **fully fictional** dataset is included at [`examples/demo_catalogue.json`](examples/demo_catalogue.json). Its phone names, prices, and stock counts are invented for demonstration and do not represent the client's actual business data.
+
+1. Install dependencies as described below.
+2. Create the `data/` directory locally.
+3. Copy `examples/demo_catalogue.json` to `data/lcd_catalogue.json`.
+4. Run `python app.py`.
+
+Sample searches:
+
+| Search | Expected behavior |
+| --- | --- |
+| `DemoPhone A1` | One product with 12 units in local stock; selling price 24.50 |
+| `DemoPhone B2` | One product listed for warehouse ordering; selling price 31.25 |
+| `DemoPhone C3` | Selling price missing, so quoting is blocked pending review |
+
+Try adding **DemoPhone A1** and **DemoPhone B2** to the quotation, changing their quantities, and copying the resulting list.
+
+The fictional catalogue demonstrates the search and quotation functions. It does **not** test Excel synchronization with original-format workbooks; that workflow requires three appropriately structured workbooks.
+
 ## Running locally
 
 Requires Python 3.10+ and the three appropriately structured business workbooks.
