@@ -8,6 +8,18 @@ Developed for a real business workflow at **FALAK LINK MOBILE TRADING LLC**. The
 
 > **Portfolio note:** The company's original workbooks and generated catalogue contain business information and are intentionally excluded from this repository. This project does not use AI/ML or a SQL database; its matching and validation rules are implemented in Python.
 
+## Application screenshots
+
+The screenshots below show the application used with company-approved examples. They illustrate the staff-facing UI; the repository does not include the corresponding proprietary Excel workbooks.
+
+**Search and compatibility review**
+
+![LCD catalogue search showing two compatible products with prices, stock, and match reasons](docs/images/catalogue-search.png)
+
+**Multi-item quotation and live total**
+
+![Quotation builder showing editable quantities, item subtotals, and a calculated total](docs/images/quotation-builder.png)
+
 ## Business problem
 
 Product information was distributed across three different Excel workbooks:
