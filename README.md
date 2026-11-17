@@ -6,6 +6,17 @@ A Python desktop application that turns three operational Excel workbooks into o
 
 Developed for a real business workflow at **FALAK LINK MOBILE TRADING LLC**. The application was tested with its intended users, and their feedback informed the search, quotation, and interface improvements.
 
+### At a glance
+
+| Before | With LCD Catalogue Desktop |
+| --- | --- |
+| Search across three separate Excel workbooks | Search one consolidated offline catalogue |
+| Manually compare compatibility, pricing, and stock | View matched products, selling prices, stock, and review flags together |
+| Calculate multi-item quotes separately | Build and copy quotations with editable quantities and live totals |
+| Recheck workbook updates manually | Refresh the local catalogue when source files change |
+
+**Delivered:** a packaged Windows application for staff use, with user-guided improvements. No quantified time savings or sales impact are claimed.
+
 > **Portfolio note:** The company's original workbooks and generated catalogue contain business information and are intentionally excluded from this repository. This project does not use AI/ML or a SQL database; its matching and validation rules are implemented in Python.
 
 ## Application screenshots
@@ -98,6 +109,16 @@ Sample searches:
 Try adding **DemoPhone A1** and **DemoPhone B2** to the quotation, changing their quantities, and copying the resulting list.
 
 The fictional catalogue demonstrates the search and quotation functions. It does **not** test Excel synchronization with original-format workbooks; that workflow requires three appropriately structured workbooks.
+
+## Quality checks
+
+The repository includes regression tests using the fictional demonstration catalogue. They cover exact and cross-referenced model lookup, missing selling prices, insufficient local stock, warehouse-review decisions, and invalid input. Run from the repository root:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+These checks exercise the catalogue lookup rules, not the desktop GUI or synchronization against the company's proprietary workbooks.
 
 ## Running locally
 
