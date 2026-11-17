@@ -101,7 +101,7 @@ The fictional catalogue demonstrates the search and quotation functions. It does
 
 ## Running locally
 
-Requires Python 3.10+ and the three appropriately structured business workbooks.
+Requires Python 3.10+. The fictional demo works without the business workbooks; Excel synchronization of real data requires three appropriately structured workbooks.
 
 ```bash
 python -m venv .venv
