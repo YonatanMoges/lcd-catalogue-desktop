@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-17T00:00:00Z",
+  "demo_data": true,
+  "counts": {
+    "compatibility": 3,
+    "prices": 3,
+    "inventory": 1
+  },
+  "sheets": {
+    "compat/DEMO": {
+      "accepted_rows": 3
+    },
+    "prices/DEMO": {
+      "accepted_rows": 3
+    },
+    "inventory/DEMO": {
+      "accepted_rows": 1
+    }
+  },
+  "compatibility": [
+    {
+      "row_number": 2,
+      "名称": "DemoPhone A1",
+      "型号": "DPA100",
+      "系列": "DemoPhone",
+      "_source_sheet": "DEMO"
+    },
+    {
+      "row_number": 3,
+      "名称": "DemoPhone B2",
+      "型号": "DPB200",
+      "系列": "DemoPhone",
+      "_source_sheet": "DEMO"
+    },
+    {
+      "row_number": 4,
+      "名称": "DemoPhone C3",
+      "型号": "DPC300",
+      "系列": "DemoPhone",
+      "_source_sheet": "DEMO"
+    }
+  ],
+  "prices": [
+    {
+      "row_number": 2,
+      "Model": "MS - DEMO-DPA100",
+      "Compatible models": "DemoPhone A1 / DPA100 /",
+      "Price": 16,
+      "Remark": "",
+      "col_5": 24.5,
+      "_main_selling_price": 24.5,
+      "_source_sheet": "DEMO"
+    },
+    {
+      "row_number": 3,
+      "Model": "MS - DEMO-DPB200",
+      "Compatible models": "DemoPhone B2 / DPB200 /",
+      "Price": 21,
+      "Remark": "",
+      "col_5": 31.25,
+      "_main_selling_price": 31.25,
+      "_source_sheet": "DEMO"
+    },
+    {
+      "row_number": 4,
+      "Model": "MS - DEMO-DPC300",
+      "Compatible models": "DemoPhone C3 / DPC300 /",
+      "Price": 14,
+      "Remark": "",
+      "col_5": null,
+      "_main_selling_price": null,
+      "_source_sheet": "DEMO"
+    }
+  ],
+  "inventory": [
+    {
+      "row_number": 2,
+      "col_2": "DEMO LCD",
+      "col_3": "DEMO-DPA100",
+      "col_4": 25.5,
+      "col_19": 12,
+      "_source_sheet": "DEMO"
+    }
+  ]
+}
