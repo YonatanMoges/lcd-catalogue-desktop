@@ -29,7 +29,7 @@ The screenshots below show the application used with company-approved examples. 
 
 **Multi-item quotation and live total**
 
-![Quotation builder showing editable quantities, item subtotals, and a calculated total](docs/images/quotation-builder.png)
+![Quotation builder showing editable quantities, item subtotals, and a calculated total](docs/images/quotation-builder-updated.png)
 
 ## Business problem
 
