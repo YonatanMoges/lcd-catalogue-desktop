@@ -1,175 +1,112 @@
 # LCD Catalogue Desktop
-## Staff User Guide — Version 4.1
 
-**FALAK LINK MOBILE TRADING LLC**
+**Offline inventory lookup and quotation automation for a UAE mobile-device trading business**
 
-Use this application to search for LCD screens, check selling
-prices and stock, and prepare quotations for customers.
+A Python desktop application that turns three operational Excel workbooks into one searchable LCD product catalogue. Staff can identify compatible displays, review selling prices and local stock, and build multi-item quotations without manually cross-referencing spreadsheets.
 
-The application works without an internet connection.
+Developed for a real business workflow at **FALAK LINK MOBILE TRADING LLC**. The application was tested with its intended users, and their feedback informed the search, quotation, and interface improvements.
 
----
+> **Portfolio note:** The company's original workbooks and generated catalogue contain business information and are intentionally excluded from this repository. This project does not use AI/ML or a SQL database; its matching and validation rules are implemented in Python.
 
-## 1. How to Open the Application
+## Business problem
 
-1. Open the LCDCatalogueDesktop folder.
-2. Double-click LCDCatalogueDesktop.exe.
-3. Make sure the catalogue loads successfully.
+Product information was distributed across three different Excel workbooks:
 
-Keep the application folder and its files together.
+1. **Compatibility list** — phone names and manufacturer model codes.
+2. **LCD price list** — products, compatibility descriptions, and selling prices.
+3. **Available models** — local store stock and pricing.
 
-## 2. How to Search for an LCD
+Preparing a quotation required looking up compatible models, checking the correct selling price, and confirming local availability. This was a repetitive and error-prone manual process.
 
-1. Type a phone name or model number in the search box.
-2. Enter the quantity requested by the customer.
-3. Click Search or press Enter.
-4. Review the matching LCD products.
+## Solution
 
-Examples:
-- SM A06
-- X657
-- Realme 10 5G
-- Infinix Smart 6
+- **Cross-sheet product lookup:** Search by model code or phone name, with normalization, compatibility cross-references, and partial-name browsing.
+- **Traceable matches:** Display why a product matched; broad searches and alternative products require manual review.
+- **Inventory decisions:** Show store quantity or identify products listed in the price catalogue but not in local inventory as warehouse-order items.
+- **Pricing safeguards:** Use the selling price from the main price catalogue; never substitute purchasing cost when a selling price is missing.
+- **Multi-item quotations:** Add selected products, change quantities, calculate live totals, remove items, and copy a customer-facing list.
+- **Local Excel synchronization:** Detect saved workbook changes, rebuild the local JSON catalogue, and retain the prior valid catalogue when conversion fails.
+- **Offline operation:** No cloud service or internet connection is required for ordinary lookup and quotation use.
 
-You can also search for broader names, such as SM or
-Infinix Smart, to browse available products.
+## Technology
 
-IMPORTANT: A broad search may return several different
-screens. Always verify the exact LCD before choosing one.
+| Component | Technology |
+| --- | --- |
+| Application and business logic | Python |
+| Desktop UI | PySide6 (Qt) |
+| Excel ingestion | openpyxl |
+| Local catalogue | JSON |
+| Windows packaging | PyInstaller |
+| Source control | Git / GitHub |
 
-## 3. Understanding Search Results
+## Data flow
 
-IN STORE:
-The application shows the quantity available locally.
+```text
+Compatibility workbook ──┐
+Price workbook ──────────┼──> Excel validation + normalization
+Inventory workbook ──────┘                 |
+                                          v
+                               Local catalogue (JSON)
+                                          |
+                                          v
+                              Search + matching rules
+                                          |
+                                          v
+                           Stock review + quotation UI
+```
 
-BIG WAREHOUSE:
-The product is listed in the price catalogue but is not
-currently shown in local stock. It can be ordered from
-the big warehouse.
+Excel inputs remain the source of truth; the generated JSON is a local read-optimized snapshot, not a separate transactional inventory database.
 
-MULTIPLE RESULTS:
-More than one LCD matches the search. Select the correct
-product after checking compatibility.
+## Code structure
 
-CONFIRM PRICE:
-The selling price is missing. Do not quote this product
-until its selling price is confirmed.
+- `app.py` — desktop interface, search results, quotation actions, and automatic refresh.
+- `lookup_engine.py` — deterministic model matching, price/stock lookup, and review flags.
+- `excel_sync.py` — Excel extraction, validation, and atomic JSON refresh.
+- `requirements.txt` — Python dependencies.
+- `build_windows.bat` — Windows build script.
+- [`USER_GUIDE.md`](USER_GUIDE.md) — instructions written for business employees.
 
-INSUFFICIENT STOCK:
-The customer requested more than the available local
-quantity. Check how the remaining quantity can be supplied.
+## Running locally
 
-MATCH REASON:
-Explains why the LCD appeared in the search results.
-This does not guarantee physical compatibility.
+Requires Python 3.10+ and the three appropriately structured business workbooks.
 
-The Order Review section displays warnings about the
-latest search. It is for internal staff use.
+```bash
+python -m venv .venv
+```
 
-## 4. How to Prepare a Quotation
+Activate the environment:
 
-1. Search for the first phone model.
-2. Click the correct LCD in Search Results.
-3. Click Add to Quotation.
-4. Search for the next model and repeat.
-5. Continue until all requested products are added.
+- Windows: `.venv\Scripts\activate`
+- macOS/Linux: `source .venv/bin/activate`
 
-All selected products appear under Current Quotation.
+Install and run:
 
-To change a quantity:
-Use the quantity control beside the quotation item.
-The amount and total update automatically.
+```bash
+pip install -r requirements.txt
+python app.py
+```
 
-To remove a product:
-Select its row and click Remove Selected.
+The application can load an existing `data/lcd_catalogue.json` or create/update it from workbooks in `data/excel/`. The **Excel Folder** control can point to another local folder holding the three source files. The expected worksheet names and columns are specified in `excel_sync.py`.
 
-To copy the quotation:
-Click Copy Quotation, then paste the copied text into
-your preferred customer communication channel.
+### Build for Windows
 
-To start a new quotation:
-Click Clear Quotation.
+Run `build_windows.bat` on a Windows machine with Python installed. The packaged application is produced under `dist/LCDCatalogueDesktop/`.
 
-Example:
+**Important:** The provided build script expects `data/lcd_catalogue.json` to exist locally and copies it into the build. Do not publish or distribute a build containing actual company data without authorization.
 
-LCD QUOTATION
+## Design decisions and limitations
 
-1. MS - CY-BD4
-   3 units x 16.00 = 48.00
-2. MS - SM A06
-   5 units x 17.25 = 86.25
-3. MS - OP-Realme 9I 5G
-   2 units x 18.00 = 36.00
-TOTAL: 170.25
+- Model matching is rule-based. Similar names do **not** guarantee physical screen compatibility; staff must verify ambiguous results.
+- A product appearing in the main price list but not in local stock is treated according to the client's warehouse-order workflow; local warehouse quantities are not tracked.
+- Quotation generation does not reserve stock, deduct inventory, or place purchases.
+- Quotation contents are session-only and are not persisted after the app closes.
+- The application is intended for local use, not simultaneous multi-user inventory editing.
+- Proprietary Excel workbooks, pricing, and live inventory snapshots are not included in the repository.
 
-The copied quotation does not include internal warehouse
-information or staff warnings.
+## Outcome
 
-IMPORTANT: Adding an item to a quotation does not
-automatically place an order or reduce inventory.
+The project was delivered as a working Windows application and refined based on user feedback, including broader catalogue search, match explanations, and a combined quotation builder. Quantified time savings and sales impact are **not claimed here** until independently measured.
 
-Quotations are not permanently saved after closing the app.
+**Developer:** Yonatan Moges
 
-## 5. How to Update Prices and Stock
-
-The application uses three Excel files:
-
-1. COMPATIBLITY LIST.xlsx
-2. PRICE OF LCDS.xlsx
-3. AVAILABLE MODELS HERE WITH ME.xlsx
-
-To update information:
-
-1. Open the appropriate Excel file.
-2. Make your changes.
-3. Save the Excel file.
-4. Return to LCD Catalogue Desktop.
-5. Allow a few seconds for automatic synchronization.
-6. Search again to see the updated information.
-
-For local inventory quantities, make sure the correct
-Total value in the inventory workbook is updated.
-
-If you change a selling price, remove and re-add affected
-items from any existing quotation to use the new price.
-
-If synchronization fails, the previous catalogue is kept.
-Do not assume its stock or prices are still current.
-
-## 6. Refreshing the Catalogue
-
-Click Refresh Catalogue to reload the catalogue.
-
-The application also checks for saved Excel changes
-automatically.
-
-The Excel Folder button allows you to select the folder
-containing the three company spreadsheets.
-
-Keep only one workbook of each type in that folder.
-
-## 7. If Something Goes Wrong
-
-No results?
-Check the spelling or search using the exact model number.
-
-Too many results?
-Use a more specific phone name or model number.
-
-Missing price?
-Confirm the selling price before quoting.
-
-Stock not updating?
-Check that the correct Excel file was saved and that
-synchronization completed successfully.
-
-Incorrect compatibility?
-Do not select the product until it has been verified.
-
----
-
-QUICK DAILY WORKFLOW
-
-Search → Select LCD → Add to Quotation →
-Adjust Quantity → Copy Quotation → Clear Quotation
-
+For day-to-day employee instructions, see the [Staff User Guide](USER_GUIDE.md).
